@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#8B4513">
+    <meta name="description" content="Community-driven poop alert and reporting system. Stay safe, stay clean!">
+    <title>Pooler - Community Poop Alert System (No Sync)</title>
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+
+    <!-- Apple Touch Icon -->
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='80' font-size='80'>💩</text></svg>">
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .status {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .ok { color: green; }
+        .error { color: red; }
+        .warning { color: orange; }
+    </style>
+</head>
+<body>
+    <h1>💩 Pooler Diagnostics</h1>
+
+    <div class="status">
+        <h2>Loading Status</h2>
+        <div id="status">Testing...</div>
+    </div>
+
+    <div class="status">
+        <h2>Console Output</h2>
+        <pre id="console" style="max-height: 300px; overflow-y: auto;"></pre>
+    </div>
+
+    <script>
+        // Capture console logs
+        const consoleOutput = document.getElementById('console');
+        const originalLog = console.log;
+        const originalError = console.error;
+
+        console.log = function(...args) {
+            consoleOutput.textContent += '[LOG] ' + args.join(' ') + '\n';
+            originalLog.apply(console, args);
+        };
+
+        console.error = function(...args) {
+            consoleOutput.textContent += '[ERROR] ' + args.join(' ') + '\n';
+            originalError.apply(console, args);
+        };
+
+        function updateStatus(msg, type = 'ok') {
+            const status = document.getElementById('status');
+            status.innerHTML += `<p class="${type}">✓ ${msg}</p>`;
+        }
+
+        // Test localStorage
+        try {
+            localStorage.setItem('test', 'test');
+            localStorage.removeItem('test');
+            updateStatus('localStorage working', 'ok');
+        } catch (e) {
+            updateStatus('localStorage failed: ' + e.message, 'error');
+        }
+
+        // Test geolocation
+        if (navigator.geolocation) {
+            updateStatus('Geolocation API available', 'ok');
+        } else {
+            updateStatus('Geolocation API not available', 'error');
+        }
+
+        updateStatus('Basic page loaded', 'ok');
+    </script>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        if (typeof L !== 'undefined') {
+            updateStatus('Leaflet loaded', 'ok');
+        } else {
+            updateStatus('Leaflet failed to load', 'error');
+        }
+    </script>
+
+    <!-- NO SYNC MODULE - Testing without it -->
+    <script>
+        updateStatus('Skipping backend-sync.js', 'warning');
+    </script>
+
+    <!-- Maps integration -->
+    <script src="maps-integration.js"></script>
+    <script>
+        if (typeof MapsIntegration !== 'undefined') {
+            updateStatus('maps-integration.js loaded', 'ok');
+        } else {
+            updateStatus('maps-integration.js failed', 'error');
+        }
+    </script>
+
+    <!-- Sensor integration -->
+    <script src="sensor-integration.js"></script>
+    <script>
+        if (typeof SensorIntegration !== 'undefined') {
+            updateStatus('sensor-integration.js loaded', 'ok');
+        } else {
+            updateStatus('sensor-integration.js failed', 'error');
+        }
+    </script>
+
+    <!-- App JavaScript -->
+    <script src="app.js"></script>
+    <script>
+        if (typeof PoolerApp !== 'undefined') {
+            updateStatus('app.js loaded (PoolerApp class defined)', 'ok');
+
+            if (typeof poolerApp !== 'undefined' && poolerApp) {
+                updateStatus('poolerApp instance created successfully!', 'ok');
+                updateStatus('<strong>APP IS WORKING!</strong>', 'ok');
+            } else {
+                updateStatus('poolerApp instance NOT created', 'error');
+            }
+        } else {
+            updateStatus('app.js failed to load', 'error');
+        }
+    </script>
+
+    <div class="status">
+        <h2>Instructions</h2>
+        <p>If you see errors above, they indicate the problem.</p>
+        <p>If everything shows OK, then the issue is with the sync module.</p>
+        <p><strong>Solution:</strong> Clear your browser's cache and localStorage for this site:</p>
+        <ol>
+            <li>Open DevTools (F12)</li>
+            <li>Go to Application (Chrome) or Storage (Firefox)</li>
+            <li>Click "Clear storage" or "Clear site data"</li>
+            <li>Reload the page</li>
+        </ol>
+    </div>
+</body>
+</html>

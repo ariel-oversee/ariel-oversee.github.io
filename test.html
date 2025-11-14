@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pooler Test</title>
+</head>
+<body>
+    <h1>Testing Pooler Scripts</h1>
+    <div id="output"></div>
+
+    <script>
+        function log(msg) {
+            const div = document.getElementById('output');
+            div.innerHTML += '<p>' + msg + '</p>';
+            console.log(msg);
+        }
+
+        log('Starting script load test...');
+    </script>
+
+    <script src="backend-sync.js"></script>
+    <script>
+        log('backend-sync.js loaded');
+        log('BackendSync type: ' + typeof BackendSync);
+    </script>
+
+    <script src="maps-integration.js"></script>
+    <script>
+        log('maps-integration.js loaded');
+        log('MapsIntegration type: ' + typeof MapsIntegration);
+    </script>
+
+    <script src="sensor-integration.js"></script>
+    <script>
+        log('sensor-integration.js loaded');
+        log('SensorIntegration type: ' + typeof SensorIntegration);
+    </script>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        log('Leaflet loaded');
+        log('Leaflet type: ' + typeof L);
+    </script>
+
+    <script src="app.js"></script>
+    <script>
+        log('app.js loaded');
+        log('PoolerApp type: ' + typeof PoolerApp);
+        log('poolerApp instance: ' + typeof poolerApp);
+
+        if (typeof poolerApp !== 'undefined' && poolerApp) {
+            log('✓ App initialized successfully!');
+        } else {
+            log('✗ App failed to initialize');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Pooler Cache</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .box {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        button {
+            background: #8B4513;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        button:hover {
+            background: #A0522D;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        .info {
+            background: #FFF3CD;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h1>💩 Pooler Cache Cleaner</h1>
+
+        <div class="info">
+            <strong>⚠️ Warning:</strong> This will delete all your local poop reports!<br>
+            Only do this if the app is not responding.
+        </div>
+
+        <button onclick="clearEverything()">Clear All Data & Reload</button>
+
+        <button onclick="clearOnlySync()">Clear Only Sync Settings</button>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        function clearEverything() {
+            try {
+                // Clear localStorage
+                localStorage.clear();
+                document.getElementById('result').innerHTML =
+                    '<div class="success">✓ LocalStorage cleared</div>';
+
+                // Unregister service workers
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                        for(let registration of registrations) {
+                            registration.unregister();
+                        }
+                        document.getElementById('result').innerHTML +=
+                            '<div class="success">✓ Service Workers unregistered</div>';
+
+                        // Clear caches
+                        if ('caches' in window) {
+                            caches.keys().then(function(names) {
+                                for (let name of names) {
+                                    caches.delete(name);
+                                }
+                                document.getElementById('result').innerHTML +=
+                                    '<div class="success">✓ Caches cleared</div>';
+
+                                setTimeout(() => {
+                                    document.getElementById('result').innerHTML +=
+                                        '<div class="success"><strong>✓ All cleared! Reloading in 2 seconds...</strong></div>';
+                                    setTimeout(() => {
+                                        window.location.href = '/';
+                                    }, 2000);
+                                }, 500);
+                            });
+                        }
+                    });
+                } else {
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 2000);
+                }
+            } catch (e) {
+                document.getElementById('result').innerHTML =
+                    '<div style="color: red;">Error: ' + e.message + '</div>';
+            }
+        }
+
+        function clearOnlySync() {
+            try {
+                localStorage.removeItem('poolerSyncConfig');
+                document.getElementById('result').innerHTML =
+                    '<div class="success">✓ Sync settings cleared!<br>Reloading in 2 seconds...</div>';
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 2000);
+            } catch (e) {
+                document.getElementById('result').innerHTML =
+                    '<div style="color: red;">Error: ' + e.message + '</div>';
+            }
+        }
+    </script>
+</body>
+</html>

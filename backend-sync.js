@@ -12,9 +12,12 @@ class BackendSync {
         // Load sync configuration
         this.loadSyncConfig();
 
-        // Auto-initialize if configured
+        // Auto-initialize if configured (non-blocking)
         if (this.syncMethod) {
-            this.initializeSync();
+            this.initializeSync().catch(err => {
+                console.error('[Sync] Auto-init failed:', err);
+                this.syncEnabled = false;
+            });
         }
     }
 

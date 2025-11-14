@@ -35,6 +35,7 @@ Think of it as "Waze for Poop" - a community-driven navigation system that helps
 - **Location types** (sidewalk, park, street, etc.)
 - **Optional notes** for additional context
 - **Confirmation system** to verify reports
+- **Cross-device sync** to share reports with other users (setup required)
 
 ### 🏛️ Municipality Integration
 - **Direct notifications** to local authorities
@@ -66,6 +67,50 @@ Think of it as "Waze for Poop" - a community-driven navigation system that helps
 3. **Explore the map**: See existing poop reports in your area
 4. **Report poop**: Tap the floating 💩 button to submit a report
 5. **Stay alert**: Receive notifications when approaching reported locations
+
+### 🔄 Enable Cross-Device Sync
+
+**IMPORTANT**: By default, reports are stored locally on your device only. To share reports with other users, you need to enable cross-device sync.
+
+**Quick Setup (2 minutes):**
+
+1. **Tap the ⚙️ Settings button** in the control panel
+2. **Choose option "2. Setup Cross-Device Sync"**
+3. **Select a sync method**:
+   - **GitHub Gist** (Free, requires GitHub account) - Recommended
+   - **JSONBin.io** (Free, requires account at jsonbin.io)
+   - **Custom API** (Your own backend)
+
+#### Option 1: GitHub Gist (Easiest)
+
+1. Go to: [github.com/settings/tokens](https://github.com/settings/tokens)
+2. Click "Generate new token (classic)"
+3. Select only the **"gist"** scope
+4. Generate and copy the token
+5. Paste it in Pooler's setup wizard
+6. Done! Reports now sync across all devices using your GitHub Gist
+
+#### Option 2: JSONBin.io
+
+1. Go to: [jsonbin.io](https://jsonbin.io)
+2. Sign up for free
+3. Create a new bin
+4. Copy your Bin ID and API Key
+5. Enter them in Pooler's setup wizard
+6. Done! Reports sync via JSONBin
+
+#### Option 3: Custom Backend API
+
+If you have your own backend server, you can connect it:
+- Provide your API endpoint URL
+- Add authentication if needed
+- Pooler will POST/GET reports to your server
+
+**After Setup:**
+- Reports automatically sync every 30 seconds
+- New reports upload immediately
+- You'll see notifications when new reports are found
+- Check sync status in Settings (option 3)
 
 ### For Developers
 

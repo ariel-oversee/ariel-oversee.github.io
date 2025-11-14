@@ -11,6 +11,7 @@ class PoolerApp {
         this.watchId = null;
         this.alertRadius = 50; // meters
         this.activeAlerts = new Set();
+        this.backendSync = null;
 
         // Load existing reports from localStorage
         this.loadReports();
@@ -22,6 +23,12 @@ class PoolerApp {
     init() {
         // Initialize map
         this.initMap();
+
+        // Initialize backend sync (if BackendSync is available)
+        if (typeof BackendSync !== 'undefined') {
+            this.backendSync = new BackendSync(this);
+            console.log('[App] Backend sync initialized');
+        }
 
         // Request location permission and start tracking
         this.startLocationTracking();
@@ -263,6 +270,11 @@ class PoolerApp {
 
         // Share with nearby users (simulate P2P sharing)
         this.broadcastReport(report);
+
+        // Sync to backend if enabled
+        if (this.backendSync) {
+            this.backendSync.syncNewReport(report);
+        }
     }
 
     addPoopMarker(report) {
@@ -571,13 +583,29 @@ class PoolerApp {
     }
 
     showSettings() {
-        const currentRadius = this.alertRadius;
-        const newRadius = prompt(`⚙️ Settings\n\nAlert Radius (meters):\nCurrent: ${currentRadius}m\n\nEnter new value:`, currentRadius);
+        const syncStatus = this.backendSync ? this.backendSync.getSyncStatus() : '❌ Sync not available';
 
-        if (newRadius && !isNaN(newRadius)) {
-            this.alertRadius = parseInt(newRadius);
-            localStorage.setItem('alertRadius', this.alertRadius);
-            this.showSuccessMessage(`✅ Alert radius set to ${this.alertRadius}m`);
+        const choice = prompt(
+            `⚙️ Pooler Settings\n\n` +
+            `1. Alert Radius (current: ${this.alertRadius}m)\n` +
+            `2. Setup Cross-Device Sync\n` +
+            `3. Sync Status: ${syncStatus}\n\n` +
+            `Enter 1 or 2:`
+        );
+
+        if (choice === '1') {
+            const newRadius = prompt(`Alert Radius (meters):\nCurrent: ${this.alertRadius}m\n\nEnter new value:`, this.alertRadius);
+            if (newRadius && !isNaN(newRadius)) {
+                this.alertRadius = parseInt(newRadius);
+                localStorage.setItem('alertRadius', this.alertRadius);
+                this.showSuccessMessage(`✅ Alert radius set to ${this.alertRadius}m`);
+            }
+        } else if (choice === '2') {
+            if (this.backendSync) {
+                this.backendSync.setupWizard();
+            } else {
+                alert('❌ Backend sync module not loaded');
+            }
         }
     }
 

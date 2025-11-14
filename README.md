@@ -26,8 +26,9 @@ Pooler is like "Waze for Poop" - a community-driven Progressive Web App that:
 
 1. Visit [https://ariel-oversee.github.io/](https://ariel-oversee.github.io/)
 2. Allow location access
-3. Report poop when you see it
-4. Receive alerts when approaching reported locations
+3. **Setup cross-device sync** (Settings ⚙️ > Option 2) so reports appear for all users
+4. Report poop when you see it
+5. Receive alerts when approaching reported locations
 
 📖 **[Read Full Documentation](POOLER_README.md)**
 

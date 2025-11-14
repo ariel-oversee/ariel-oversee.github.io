@@ -1,11 +1,14 @@
 // Pooler Service Worker
 // Enables offline functionality and background sync
 
-const CACHE_NAME = 'pooler-v1';
+const CACHE_NAME = 'pooler-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/app.js',
+  '/backend-sync.js',
+  '/maps-integration.js',
+  '/sensor-integration.js',
   '/manifest.json',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'

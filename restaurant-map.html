@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Tokyo Burgers & BBQ</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── Header ── */
+  .header {
+    padding: 12px 16px;
+    background: #1e293b;
+    border-bottom: 1px solid #334155;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .header h1 { font-size: 16px; font-weight: 600; }
+  .header .count { font-size: 13px; color: #94a3b8; }
+
+  /* ── Filter bar (always visible, above map) ── */
+  .filter-bar {
+    display: flex;
+    gap: 6px;
+    padding: 8px 12px;
+    overflow-x: auto;
+    flex-shrink: 0;
+    background: #1e293b;
+    border-bottom: 1px solid #334155;
+    -webkit-overflow-scrolling: touch;
+  }
+  .filter-bar::-webkit-scrollbar { display: none; }
+  .filter-chip {
+    padding: 5px 10px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 500;
+    background: #334155;
+    color: #cbd5e1;
+    border: none;
+    white-space: nowrap;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s, color 0.15s;
+  }
+  .filter-chip.active { background: #4f46e5; color: #fff; }
+
+  /* ── Map ── */
+  #map { flex: 1; z-index: 1; }
+
+  /* ── Bottom panel ── */
+  .panel {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: #1e293b;
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.4);
+    transition: transform 0.3s ease;
+    max-height: 65dvh;
+    display: flex;
+    flex-direction: column;
+  }
+  .panel.collapsed { transform: translateY(calc(100% - 52px)); }
+  .panel-handle { padding: 12px; text-align: center; cursor: pointer; flex-shrink: 0; }
+  .panel-handle .bar { width: 36px; height: 4px; background: #475569; border-radius: 2px; margin: 0 auto 8px; }
+  .panel-handle .label { font-size: 13px; color: #94a3b8; }
+
+  /* ── List header ── */
+  .list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 12px 8px;
+    flex-shrink: 0;
+  }
+  .list-count { font-size: 12px; color: #64748b; }
+  .sort-btn {
+    font-size: 11px;
+    color: #94a3b8;
+    background: #334155;
+    border: none;
+    border-radius: 8px;
+    padding: 4px 8px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .sort-btn.active { color: #fbbf24; background: #292524; }
+
+  /* ── List ── */
+  .panel-list { overflow-y: auto; padding: 0 12px 24px; flex: 1; }
+  .area-group { margin-bottom: 16px; }
+  .area-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    padding: 4px 0;
+    position: sticky;
+    top: 0;
+    background: #1e293b;
+  }
+
+  /* ── Place card ── */
+  .place-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: #0f172a;
+    border-radius: 10px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    border: 1.5px solid transparent;
+    transition: background 0.15s, border-color 0.15s;
+    width: 100%;
+    text-align: left;
+  }
+  .place-card:hover { background: #131f35; }
+  .place-card.selected { background: #131f35; border-color: #334155; }
+  .place-num {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .place-info { flex: 1; min-width: 0; }
+  .place-name {
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .place-meta { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+  .place-rating { font-size: 13px; font-weight: 600; color: #fbbf24; flex-shrink: 0; }
+  .not-on-map {
+    display: inline-block;
+    font-size: 10px;
+    color: #64748b;
+    background: #1e293b;
+    border-radius: 4px;
+    padding: 1px 5px;
+    margin-left: 5px;
+    vertical-align: middle;
+    font-weight: 400;
+  }
+
+  /* ── Leaflet popup overrides ── */
+  .leaflet-popup-content-wrapper {
+    background: #1e293b;
+    color: #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    padding: 0;
+    overflow: hidden;
+  }
+  .leaflet-popup-tip { background: #1e293b; }
+  .leaflet-popup-close-button {
+    color: #64748b !important;
+    font-size: 20px !important;
+    top: 8px !important;
+    right: 10px !important;
+    width: 24px !important;
+    height: 24px !important;
+    line-height: 24px !important;
+  }
+  .leaflet-popup-close-button:hover { color: #e2e8f0 !important; background: none !important; }
+  .leaflet-popup-content { margin: 0; font-family: inherit; }
+  .popup-accent { height: 3px; }
+  .popup-inner { padding: 12px 36px 14px 14px; }
+  .popup-name { font-size: 15px; font-weight: 600; margin-bottom: 3px; line-height: 1.3; }
+  .popup-cat { font-size: 12px; color: #94a3b8; }
+  .popup-rating { font-size: 13px; color: #fbbf24; margin-top: 6px; }
+  .popup-link {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 12px;
+    color: #818cf8;
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .popup-link:hover { color: #a5b4fc; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Tokyo Burgers & BBQ</h1>
+  <span class="count">16 places · Daniel's list</span>
+</div>
+
+<div class="filter-bar" id="filters"></div>
+
+<div id="map"></div>
+
+<div class="panel collapsed" id="panel">
+  <div class="panel-handle" id="panel-handle">
+    <div class="bar"></div>
+    <span class="label">Show list</span>
+  </div>
+  <div class="list-header">
+    <span class="list-count" id="list-count"></span>
+    <button class="sort-btn" id="sort-btn">Sort by rating</button>
+  </div>
+  <div class="panel-list" id="list"></div>
+</div>
+
+<script>
+const places = [
+  { name: "BRISK STAND Main Store",        rating: 4.6, cat: "Burger",            area: "Suidobashi",    lat: 35.6997, lng: 139.7565, link: "https://www.instagram.com/reel/DXR7sBGiXn8/" },
+  { name: "Kuroge Wagyu Ichinoya",          rating: 4.8, cat: "Japanese Steakhouse", area: "Asakusa",    lat: 35.7138, lng: 139.7966, link: "https://www.instagram.com/reel/DXWRzQYEucC/" },
+  { name: "焼肉こじま離れ 池袋",             rating: 4.7, cat: "Yakiniku",          area: "Ikebukuro",     lat: 35.7295, lng: 139.7109, link: "https://www.instagram.com/reel/DUNxhbcEsKu/" },
+  { name: "BRISKSTAND ASAKUSA",             rating: 4.5, cat: "Burger",            area: "Asakusa",       lat: 35.7114, lng: 139.7950, link: "https://www.instagram.com/reel/DU9yJK-Dfsi/" },
+  { name: "Torokeru Fukuyoshi Kuramae",     rating: 4.8, cat: "Hamburg Steak",     area: "Asakusa",       lat: 35.7030, lng: 139.7920, link: "https://www.instagram.com/reel/DUapU5IE-P-/" },
+  { name: "Torokeru Fukuyoshi Roppongi",    rating: 4.6, cat: "Hamburg Steak",     area: "Roppongi",      lat: 35.6628, lng: 139.7316, link: "https://www.instagram.com/reel/DTkh-c4jQYX/" },
+  { name: "Gold Rush Shibuya",              rating: 4.1, cat: "Steakhouse",        area: "Shibuya",       lat: 35.6592, lng: 139.6987, link: "https://www.instagram.com/reel/DTfgCfmDo2U/" },
+  { name: "Gui's Burger",                   rating: 4.8, cat: "Burger (Ashiya)",   area: "Outside Tokyo", lat: 34.7280, lng: 135.3030, link: "https://youtu.be/EpLEAc8bJbw" },
+  { name: "JB's TOKYO",                     rating: 4.5, cat: "Burger",            area: "Yoyogi",        lat: 35.6828, lng: 139.7022, link: "https://youtu.be/US9Y9q5aTP4" },
+  { name: "Shogun Burger",                  rating: 4.8, cat: "Burger",            area: "Shinjuku",      lat: 35.6943, lng: 139.7031, link: "https://youtu.be/DRKzai_Ujqk" },
+  { name: "Sakana no Mise Okamo Kurabu",    rating: 4.3, cat: "Japanese Pub",      area: "Meguro",        lat: 35.6339, lng: 139.7155, link: "" },
+  { name: "NY BISTRO by NO CODE",           rating: 4.2, cat: "Bistro",            area: "Marunouchi",    lat: 35.6825, lng: 139.7644, link: "https://www.instagram.com/reel/DTOwwyJkvgB/" },
+  { name: "Hikiniku to Come",               rating: 4.4, cat: "Meat Dishes",       area: "Shibuya",       lat: 35.6615, lng: 139.6982, link: "https://www.instagram.com/reel/DSvp-gYjrAW/" },
+  { name: "SLICE of LIFE",                  rating: 4.4, cat: "BBQ Food Truck",    area: "Harajuku",      lat: 35.6690, lng: 139.7060, link: "https://www.instagram.com/reel/DTC-QHdkkbL/" },
+  { name: "American Diner Andra",           rating: 4.4, cat: "Burger",            area: "Ueno",          lat: 35.7128, lng: 139.7820, link: "https://www.instagram.com/reels/DQSrFjhkQQG/" },
+  { name: "Henry's Burger Harajuku",        rating: 4.4, cat: "Burger",            area: "Harajuku",      lat: 35.6702, lng: 139.7027, link: "https://www.instagram.com/reel/DS4r9FTElCN/" },
+];
+
+const areaColors = {
+  "Asakusa":       "#f97316",
+  "Shibuya":       "#ec4899",
+  "Harajuku":      "#d946ef",
+  "Shinjuku":      "#8b5cf6",
+  "Roppongi":      "#06b6d4",
+  "Ikebukuro":     "#14b8a6",
+  "Yoyogi":        "#a855f7",
+  "Meguro":        "#10b981",
+  "Marunouchi":    "#3b82f6",
+  "Suidobashi":    "#6366f1",
+  "Ueno":          "#f59e0b",
+  "Outside Tokyo": "#64748b",
+};
+
+// ── Map ──────────────────────────────────────────────────────────────────────
+const map = L.map('map', { zoomControl: false }).setView([35.6812, 139.7671], 12);
+L.control.zoom({ position: 'topright' }).addTo(map);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
+  subdomains: 'abcd',
+  maxZoom: 19,
+}).addTo(map);
+
+const tokyoPlaces = places.filter(p => p.area !== "Outside Tokyo");
+map.fitBounds(L.latLngBounds(tokyoPlaces.map(p => [p.lat, p.lng])).pad(0.15));
+
+// ── Markers (Tokyo only) ─────────────────────────────────────────────────────
+const markers = places.map((p, i) => {
+  if (p.area === "Outside Tokyo") return null;
+
+  const color = areaColors[p.area];
+  const icon = L.divIcon({
+    className: '',
+    html: `<div style="width:28px;height:28px;background:${color};border:2.5px solid #fff;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;line-height:1">${i + 1}</div>`,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+    popupAnchor: [0, -16],
+  });
+
+  const linkHtml = p.link
+    ? `<a class="popup-link" href="${p.link}" target="_blank" rel="noreferrer">Watch review ↗</a>`
+    : '';
+
+  const marker = L.marker([p.lat, p.lng], { icon })
+    .addTo(map)
+    .bindPopup(`
+      <div class="popup-accent" style="background:${color}"></div>
+      <div class="popup-inner">
+        <div class="popup-name">${p.name}</div>
+        <div class="popup-cat">${p.cat} · ${p.area}</div>
+        <div class="popup-rating">★ ${p.rating}</div>
+        ${linkHtml}
+      </div>`, { maxWidth: 230 });
+
+  marker.on('popupopen',  () => setSelectedIdx(i));
+  marker.on('popupclose', () => setSelectedIdx(null));
+
+  return marker;
+});
+
+// ── State ────────────────────────────────────────────────────────────────────
+let activeFilter = null;
+let sortByRating = false;
+let selectedIdx  = null;
+
+function setSelectedIdx(idx) {
+  selectedIdx = idx;
+  document.querySelectorAll('.place-card').forEach(el => {
+    el.classList.toggle('selected', parseInt(el.dataset.idx) === idx);
+  });
+}
+
+// ── Filter chips ─────────────────────────────────────────────────────────────
+const filtersEl = document.getElementById('filters');
+const areas = [...new Set(places.map(p => p.area))];
+
+function buildChip(label, onClick) {
+  const chip = document.createElement('button');
+  chip.className = 'filter-chip';
+  chip.textContent = label;
+  chip.setAttribute('aria-label', label === 'All' ? 'Show all areas' : `Filter by ${label}`);
+  chip.onclick = onClick;
+  return chip;
+}
+
+const allChip = buildChip('All', () => filterArea(null));
+allChip.classList.add('active');
+filtersEl.appendChild(allChip);
+
+areas.forEach(area => {
+  const chip = buildChip(area, () => filterArea(area));
+  chip.style.borderLeft = `3px solid ${areaColors[area] || '#94a3b8'}`;
+  filtersEl.appendChild(chip);
+});
+
+function filterArea(area) {
+  activeFilter = area;
+
+  [...filtersEl.children].forEach(c => {
+    c.classList.toggle('active', c.textContent === (area ?? 'All'));
+  });
+
+  // Close popup if it belongs to a now-hidden marker
+  if (area && selectedIdx !== null && places[selectedIdx]?.area !== area) {
+    map.closePopup();
+  }
+
+  const visible = places.filter(p => (!area || p.area === area) && p.area !== "Outside Tokyo");
+  if (visible.length) {
+    map.fitBounds(L.latLngBounds(visible.map(p => [p.lat, p.lng])).pad(0.2), { animate: true, duration: 0.5 });
+  }
+
+  markers.forEach((m, i) => {
+    if (!m) return;
+    m.setOpacity(!area || places[i].area === area ? 1 : 0.15);
+  });
+
+  renderList();
+}
+
+// ── Sort toggle ───────────────────────────────────────────────────────────────
+const sortBtn = document.getElementById('sort-btn');
+sortBtn.onclick = () => {
+  sortByRating = !sortByRating;
+  sortBtn.classList.toggle('active', sortByRating);
+  sortBtn.textContent = sortByRating ? 'Sorted: rating ↓' : 'Sort by rating';
+  renderList();
+};
+
+// ── List rendering ────────────────────────────────────────────────────────────
+function renderList() {
+  const listEl   = document.getElementById('list');
+  const countEl  = document.getElementById('list-count');
+  listEl.innerHTML = '';
+
+  const items = places
+    .map((p, i) => ({ ...p, idx: i }))
+    .filter(p => !activeFilter || p.area === activeFilter);
+
+  countEl.textContent = `${items.length} place${items.length !== 1 ? 's' : ''}`;
+
+  if (sortByRating) {
+    items.slice().sort((a, b) => b.rating - a.rating).forEach(p => listEl.appendChild(makeCard(p)));
+  } else {
+    const grouped = {};
+    items.forEach(p => { (grouped[p.area] ??= []).push(p); });
+    for (const [area, areaItems] of Object.entries(grouped)) {
+      const group = document.createElement('div');
+      group.className = 'area-group';
+      const label = document.createElement('div');
+      label.className = 'area-label';
+      label.textContent = area;
+      group.appendChild(label);
+      areaItems.forEach(p => group.appendChild(makeCard(p)));
+      listEl.appendChild(group);
+    }
+  }
+}
+
+function makeCard(p) {
+  const color         = areaColors[p.area] || '#94a3b8';
+  const isOutside     = p.area === "Outside Tokyo";
+  const isSelected    = p.idx === selectedIdx;
+
+  const card = document.createElement('button');
+  card.className = 'place-card' + (isSelected ? ' selected' : '');
+  card.dataset.idx = p.idx;
+  card.setAttribute('aria-label', p.name);
+
+  const badge = isOutside ? `<span class="not-on-map">not on map</span>` : '';
+
+  card.innerHTML = `
+    <div class="place-num" style="background:${color}">${p.idx + 1}</div>
+    <div class="place-info">
+      <div class="place-name">${p.name}${badge}</div>
+      <div class="place-meta">${p.cat}</div>
+    </div>
+    <div class="place-rating">★ ${p.rating}</div>
+  `;
+
+  card.onclick = () => {
+    if (isOutside) {
+      // Nothing to show on map — go straight to the review
+      if (p.link) window.open(p.link, '_blank', 'noreferrer');
+      return;
+    }
+    map.setView([p.lat, p.lng], 15, { animate: true, duration: 0.4 });
+    markers[p.idx]?.openPopup();
+    togglePanel(true);
+  };
+
+  return card;
+}
+
+// ── Panel ─────────────────────────────────────────────────────────────────────
+const panel = document.getElementById('panel');
+document.getElementById('panel-handle').addEventListener('click', () => togglePanel());
+
+function togglePanel(forceCollapse) {
+  const label = panel.querySelector('.label');
+  const shouldCollapse = forceCollapse || !panel.classList.contains('collapsed');
+  panel.classList.toggle('collapsed', shouldCollapse);
+  label.textContent = shouldCollapse ? 'Show list' : 'Hide list';
+}
+
+renderList();
+</script>
+</body>
+</html>
